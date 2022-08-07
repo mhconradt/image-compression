@@ -56,6 +56,20 @@ def truncate_values(a: np.ndarray, tolerance: float) -> np.ndarray:
     return np.where(np.abs(a) < tolerance, 0, a)
 
 
+def calculate_compression_ratio(original, compressed) -> float:
+    return (original != 0).sum() / (compressed != 0).sum()
+
+
+def plot_image(original: np.array, encoded: np.array, tolerance: float, axes_subplot) -> None:
+    encoded = truncate_values(encoded,
+                              tolerance)  # Reuse E across iterations because tolerance increases
+    decoded = haar_decode(encoded)
+    axes_subplot.imshow(decoded, cmap='gray')
+    axes_subplot.set_title(f'({tolerance}) 1:{calculate_compression_ratio(original, encoded) :.1f}')
+    axes_subplot.tick_params(which='both', bottom=False, top=False, left=False, right=False,
+                             labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+
+
 if __name__ == '__main__':
     with Image.open(sys.argv[1]) as im:
         im = preprocess_image(im)
@@ -63,20 +77,10 @@ if __name__ == '__main__':
         E = haar_encode(A)
         fig, axes = plt.subplots(1, 4)
         for tol, ax in zip(range(1, 9, 2), axes.reshape(-1)):
-            E = truncate_values(E, tol)  # Reuse E across iterations because tolerance increases
-            D = haar_decode(E)
-            ax.imshow(D, cmap='gray')
-            ax.set_title(f'({tol}) 1:{(A != 0).sum() / (E != 0).sum():.1f}')
-            ax.tick_params(which='both', bottom=False, top=False, left=False, right=False,
-                           labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+            plot_image(A, E, tol, ax)
         fig.tight_layout()
         plt.show()
         fig, ax = plt.subplots()
-        E = truncate_values(E, 12)
-        D = haar_decode(E)
-        ax.imshow(D, cmap='gray')
-        ax.set_title(f'(12) 1:{(A != 0).sum() / (E != 0).sum():.1f}')
-        ax.tick_params(which='both', bottom=False, top=False, left=False, right=False,
-                       labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        plot_image(A, E, 12, ax)
         fig.tight_layout()
         plt.show()
