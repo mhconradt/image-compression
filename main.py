@@ -1,4 +1,7 @@
 import math
+import sys
+
+from matplotlib import pyplot as plt
 import numpy as np
 from PIL import Image, ImageOps
 
@@ -49,12 +52,31 @@ def haar_decode(a: np.ndarray) -> np.ndarray:
     return row_decoder.T @ a @ row_decoder
 
 
+def truncate_values(a: np.ndarray, tolerance: float) -> np.ndarray:
+    return np.where(np.abs(a) < tolerance, 0, a)
+
+
 if __name__ == '__main__':
-    A = np.array([[0., 17., 34., 51.],
-                      [68., 85., 102., 119.],
-                      [136., 153., 170., 187.],
-                      [204., 221., 238., 255.]])
-    E = haar_encode(A)
-    D = haar_decode(E)
-    print(D)
-    print(D == A)
+    with Image.open(sys.argv[1]) as im:
+        im = preprocess_image(im)
+        A = np.array(im)
+        E = haar_encode(A)
+        fig, axes = plt.subplots(1, 4)
+        for tol, ax in zip(range(1, 9, 2), axes.reshape(-1)):
+            E = truncate_values(E, tol)  # Reuse E across iterations because tolerance increases
+            D = haar_decode(E)
+            ax.imshow(D, cmap='gray')
+            ax.set_title(f'({tol}) 1:{(A != 0).sum() / (E != 0).sum():.1f}')
+            ax.tick_params(which='both', bottom=False, top=False, left=False, right=False,
+                           labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        fig.tight_layout()
+        plt.show()
+        fig, ax = plt.subplots()
+        E = truncate_values(E, 12)
+        D = haar_decode(E)
+        ax.imshow(D, cmap='gray')
+        ax.set_title(f'(12) 1:{(A != 0).sum() / (E != 0).sum():.1f}')
+        ax.tick_params(which='both', bottom=False, top=False, left=False, right=False,
+                       labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        fig.tight_layout()
+        plt.show()
